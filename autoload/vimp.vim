@@ -7,6 +7,7 @@ set cpo&vim
 let s:true  = 1
 let s:false = 0
 
+" Put something like this in your vimrc
 "if len(findfile("Vimpfile", ".;")) > 0
 "  let s:cwd = getcwd()
 "  let s:vimp = s:false
@@ -19,21 +20,22 @@ let s:false = 0
 "endif
 
 let g:vimp = {
-      \ list = ["vim-vimp"],
-      \ file = "Vimpfile",
-}
-
-let s:cwd = getcwd()
-execute "set runtimepath+=" . s:cwd . "/.vimp"
-for plug in split(glob(s:cwd . "/.vimp/*"), '\n')
-  execute 'set runtimepath+=' . plug
-endfor
+      \ "list": [
+      \   "vim-vimp",
+      \   "ctrlp.vim",
+      \ ],
+      \ "dir":  ".vimp",
+      \ "file": "Vimpfile",
+      \}
 
 function! vimp#parse()
   let list = []
   for dep in readfile("Vimpfile")
+  if dep ==# "vim-vimp"
+    continue
+  endif
     if isdirectory(dep)
-      let res= fnamemodify(dep, ":p")
+      let res = fnamemodify(dep, ":p")
       call add(list, res)
     else
       let res = finddir(fnamemodify(dep, ":t"), expand("$HOME/.vim/bundle"))
@@ -46,9 +48,12 @@ function! vimp#parse()
 endfunction
 
 function! vimp#symbolic()
-  call mkdir(".vimp")
+  if !isdirectory(g:vimp.dir)
+    call mkdir(g:vimp.dir)
+  endif
+
   for link in vimp#parse()
-    call system(printf("ln -snf %s .vimp", link))
+    call system(printf("ln -snf %s %s", link, g:vimp.dir))
   endfor
 endfunction
 
@@ -60,6 +65,12 @@ endfunction
 
 function! vimp#gen()
   call writefile(g:vimp.list, g:vimp.file)
+endfunction
+
+function! vimp#vimp()
+  call vimp#gen()
+  call vimp#symbolic()
+  call vimp#list()
 endfunction
 
 "__END__ {{{1
